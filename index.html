@@ -51,7 +51,6 @@
       perspective: 1000px;
     }
 
-    /* Ambient CRT Radar Scanlines */
     .scanline-overlay {
       position: absolute;
       top: 0;
@@ -65,7 +64,6 @@
       opacity: 0.5;
     }
 
-    /* Outer Grid Layout */
     .dashboard-viewport {
       position: relative;
       z-index: 1;
@@ -78,7 +76,6 @@
       transform-style: preserve-3d;
     }
 
-    /* Sci-Fi Glassmorphism Panel */
     .hud-card {
       background: var(--panel-bg);
       border: 1px solid var(--border-cyan);
@@ -96,7 +93,6 @@
       );
     }
 
-    /* Glowing HUD Bracket Corners */
     .hud-card::before, .hud-card::after {
       content: "";
       position: absolute;
@@ -108,7 +104,6 @@
     .hud-card::before { top: 2px; left: 2px; border-right: none; border-bottom: none; }
     .hud-card::after { bottom: 2px; right: 2px; border-left: none; border-top: none; }
 
-    /* Left Sidebar Headers & Badges */
     .brand-header {
       margin-bottom: 24px;
       border-bottom: 1px dashed var(--border-cyan);
@@ -149,7 +144,6 @@
       50% { opacity: 1; transform: scale(1.3); }
     }
 
-    /* Telemetry Diagnostics */
     .telemetry-group {
       display: flex;
       flex-direction: column;
@@ -184,7 +178,6 @@
       transition: width 0.4s ease;
     }
 
-    /* Sci-Fi Select Input */
     .hud-select {
       width: 100%;
       background: rgba(2, 6, 18, 0.9);
@@ -204,7 +197,6 @@
       box-shadow: 0 0 15px var(--cyan-glow);
     }
 
-    /* Camera HUD Module */
     .camera-hud-box {
       margin-top: auto;
       background: #000;
@@ -263,7 +255,6 @@
       box-shadow: 0 0 20px var(--pink-glow);
     }
 
-    /* Center Section Panel */
     .center-hud {
       display: flex;
       flex-direction: column;
@@ -271,7 +262,6 @@
       align-items: center;
     }
 
-    /* 3D Hologram Stage */
     .hologram-3d-viewport {
       position: relative;
       width: 100%;
@@ -288,7 +278,6 @@
       outline: none;
     }
 
-    /* Sci-Fi Output Terminal Box */
     .output-console {
       width: 100%;
       background: rgba(2, 6, 18, 0.9);
@@ -316,7 +305,6 @@
       text-shadow: 0 0 10px var(--cyan-glow); 
     }
 
-    /* Input Pill Dock */
     .dock-input {
       width: 100%;
       display: flex;
@@ -373,7 +361,6 @@
 
   <div class="dashboard-viewport" id="viewport">
     
-    <!-- LEFT DIAGNOSTICS SIDEBAR -->
     <div class="hud-card">
       <div class="brand-header">
         <h1>SHRUTI AI</h1>
@@ -398,7 +385,6 @@
           <div class="progress-bar-bg"><div class="progress-bar-fill" id="audioBar" style="width: 10%;"></div></div>
         </div>
 
-        <!-- FEMALE VOICE PERSONA SELECTOR -->
         <div>
           <div class="metric-row"><span>FEMALE VOICE PERSONA</span></div>
           <select id="femaleVoiceSelect" class="hud-select">
@@ -417,7 +403,6 @@
       </div>
     </div>
 
-    <!-- CENTER 3D HOLOGRAM CORE -->
     <div class="hud-card center-hud">
       <div class="hologram-3d-viewport" onclick="startListening()">
         <canvas id="threeCanvas"></canvas>
@@ -442,17 +427,16 @@
     const userText = document.getElementById("userText");
     const aiResponse = document.getElementById("aiResponse");
 
-    // Integrated Groq API Credentials
     const GROQ_API_KEY = "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";
     const GROQ_MODEL = "llama-3.3-70b-versatile";
     const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-    let systemState = "idle"; // "idle", "listening", "thinking"
+    let systemState = "idle";
     let cameraStream = null;
     let audioCtx, analyser, dataArray;
     let availableVoices = [];
 
-    // Initialize System Speech Voices
+    // Pre-warm Web Speech API Voices early to reduce initial latency
     function loadVoices() {
       if ('speechSynthesis' in window) {
         availableVoices = window.speechSynthesis.getVoices();
@@ -463,7 +447,6 @@
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    // Dynamic 3D Perspective Tilt
     window.addEventListener("mousemove", (e) => {
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
@@ -472,9 +455,7 @@
       viewport.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
     });
 
-    // ==========================================
-    // THREE.JS ARC REACTOR HOLOGRAM ENGINE
-    // ==========================================
+    // Three.js Hologram Setup
     const container = document.querySelector('.hologram-3d-viewport');
     const canvas = document.getElementById('threeCanvas');
 
@@ -486,25 +467,21 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    // 1. Core Sphere (Inner Energy Orb)
     const orbGeo = new THREE.IcosahedronGeometry(0.7, 3);
     const orbMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.9 });
     const innerOrb = new THREE.Mesh(orbGeo, orbMat);
     scene.add(innerOrb);
 
-    // 2. Middle Torus Gyro Ring
     const torusGeo = new THREE.TorusGeometry(1.3, 0.08, 16, 100);
     const torusMat = new THREE.MeshBasicMaterial({ color: 0xff0055, wireframe: true, transparent: true, opacity: 0.8 });
     const middleRing = new THREE.Mesh(torusGeo, torusMat);
     scene.add(middleRing);
 
-    // 3. Outer Segmented Tech Ring
     const outerRingGeo = new THREE.TorusGeometry(1.8, 0.03, 8, 120);
     const outerRingMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.5 });
     const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
     scene.add(outerRing);
 
-    // 4. Particle Field (Swarming Orbiters)
     const pCount = 300;
     const pGeo = new THREE.BufferGeometry();
     const pPositions = new Float32Array(pCount * 3);
@@ -517,7 +494,6 @@
     const particleField = new THREE.Points(pGeo, pMat);
     scene.add(particleField);
 
-    // Resize Handler
     window.addEventListener('resize', () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
@@ -526,7 +502,6 @@
       camera.updateProjectionMatrix();
     });
 
-    // 3D Animation Loop
     function animate3D() {
       requestAnimationFrame(animate3D);
 
@@ -542,7 +517,6 @@
 
       const speed = systemState === "thinking" ? 0.04 : systemState === "listening" ? 0.025 : 0.01;
 
-      // Counter-rotations for Arc-Reactor look
       innerOrb.rotation.y += speed * 1.5;
       innerOrb.rotation.x -= speed;
 
@@ -552,7 +526,6 @@
       outerRing.rotation.z -= speed * 0.5;
       particleField.rotation.y += 0.003;
 
-      // Color and Reactive Scale Shifts
       if (systemState === "listening") {
         orbMat.color.setHex(0xffbe0b);
         torusMat.color.setHex(0xffbe0b);
@@ -571,9 +544,6 @@
     }
     animate3D();
 
-    // ==========================================
-    // SYSTEM SETUP & GROQ SPEECH LOGIC
-    // ==========================================
     window.onload = () => {
       setInterval(() => {
         const cpu = Math.floor(Math.random() * 15) + 20;
@@ -620,6 +590,7 @@
       }
 
       try {
+        window.speechSynthesis.cancel(); // Stop active speech immediately on listen
         recognition.start();
         systemState = "listening";
         userText.innerText = "LISTENING TO SPEECH INPUT...";
@@ -663,11 +634,14 @@
 
       systemState = "idle";
       aiResponse.innerText = `>> SHRUTI: ${reply}`;
-      speakFemaleVoice(reply);
+      
+      // Trigger Instant Pipelined Female Voice Speech Engine
+      speakFemaleVoiceFast(reply);
     }
 
     async function fetchGroqAI(prompt) {
-      const systemPrompt = "You are Shruti, an intelligent female sci-fi HUD assistant like JARVIS. Answer politely in 1-2 short Hindi sentences.";
+      // System prompt strict instructions for ultra-fast audio output
+      const systemPrompt = "You are Shruti, a sharp sci-fi AI assistant. Reply strictly in 1 short Hindi or Hinglish sentence without special characters or symbols.";
       try {
         const res = await fetch(GROQ_ENDPOINT, {
           method: "POST",
@@ -680,7 +654,9 @@
             messages: [
               { role: "system", content: systemPrompt }, 
               { role: "user", content: prompt }
-            ] 
+            ],
+            max_tokens: 60, // Enforces fast token generation latency
+            temperature: 0.6
           })
         });
         const data = await res.json();
@@ -691,41 +667,47 @@
     }
 
     // ==========================================
-    // ADVANCED FEMALE SPEECH SYNTHESIS ENGINE
+    // OPTIMIZED RAPID-STREAM SPEECH ENGINE
     // ==========================================
-    function speakFemaleVoice(text) {
+    function speakFemaleVoiceFast(text) {
       if (!('speechSynthesis' in window)) return;
 
-      window.speechSynthesis.cancel();
-      const ut = new SpeechSynthesisUtterance(text);
-      const mode = document.getElementById("femaleVoiceSelect").value;
+      window.speechSynthesis.cancel(); // Flush lingering audio buffer queue
 
-      // Filter available browser voices for female/Hindi compatible voices
+      // Sanitize text from non-verbal formatting tags like **, ##, ```, etc.
+      const cleanText = text.replace(/[*_#`~[\]()]/g, '').trim();
+      
+      // Split into sentence chunks to instantly start speech pipeline
+      const sentences = cleanText.split(/(?<=[.!?|।])\s+/);
+
+      const mode = document.getElementById("femaleVoiceSelect").value;
       const femaleVoices = availableVoices.filter(v => 
         v.lang.includes("hi") || v.lang.includes("IN") || v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("google")
       );
 
-      if (femaleVoices.length > 0) {
-        ut.voice = femaleVoices[0];
-      }
+      sentences.forEach((sentence) => {
+        if (!sentence.trim()) return;
 
-      // Voice Persona Configurations
-      if (mode === "jarvis") {
-        ut.pitch = 1.25;
-        ut.rate = 1.05;
-      } else if (mode === "anime") {
-        ut.pitch = 1.6;
-        ut.rate = 1.15;
-      } else if (mode === "smooth") {
-        ut.pitch = 1.0;
-        ut.rate = 0.95;
-      } else if (mode === "cyber") {
-        ut.pitch = 1.4;
-        ut.rate = 1.2;
-      }
+        const ut = new SpeechSynthesisUtterance(sentence);
+        if (femaleVoices.length > 0) ut.voice = femaleVoices[0];
 
-      ut.lang = 'hi-IN';
-      window.speechSynthesis.speak(ut);
+        if (mode === "jarvis") {
+          ut.pitch = 1.25;
+          ut.rate = 1.15; // Slightly boosted speed for rapid feedback
+        } else if (mode === "anime") {
+          ut.pitch = 1.6;
+          ut.rate = 1.25;
+        } else if (mode === "smooth") {
+          ut.pitch = 1.0;
+          ut.rate = 1.05;
+        } else if (mode === "cyber") {
+          ut.pitch = 1.4;
+          ut.rate = 1.3;
+        }
+
+        ut.lang = 'hi-IN';
+        window.speechSynthesis.speak(ut);
+      });
     }
   </script>
 </body>
