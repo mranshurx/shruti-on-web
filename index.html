@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shruti AI - Next-Gen Hologram HUD</title>
+  <title>Shruti AI - Female Voice Persona & Sci-Fi HUD</title>
 
   <!-- High-Tech Cyberpunk Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -153,7 +153,7 @@
     .telemetry-group {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
       margin-bottom: 20px;
     }
 
@@ -184,12 +184,32 @@
       transition: width 0.4s ease;
     }
 
+    /* Sci-Fi Select Input */
+    .hud-select {
+      width: 100%;
+      background: rgba(2, 6, 18, 0.9);
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      padding: 10px;
+      font-family: 'Share Tech Mono', monospace;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      margin-top: 6px;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .hud-select:focus {
+      box-shadow: 0 0 15px var(--cyan-glow);
+    }
+
     /* Camera HUD Module */
     .camera-hud-box {
       margin-top: auto;
       background: #000;
       border: 1px solid var(--border-cyan);
-      height: 200px;
+      height: 180px;
       position: relative;
       overflow: hidden;
       display: flex;
@@ -367,13 +387,26 @@
           <div class="metric-row"><span>NEURAL CORE LOAD</span><span id="cpuVal">28%</span></div>
           <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpuBar" style="width: 28%;"></div></div>
         </div>
+
         <div>
           <div class="metric-row"><span>MEMORY ALLOCATION</span><span id="ramVal">42%</span></div>
           <div class="progress-bar-bg"><div class="progress-bar-fill" id="ramBar" style="width: 42%;"></div></div>
         </div>
+
         <div>
           <div class="metric-row"><span>SPECTRUM FREQUENCY</span><span id="audioVal">0 Hz</span></div>
           <div class="progress-bar-bg"><div class="progress-bar-fill" id="audioBar" style="width: 10%;"></div></div>
+        </div>
+
+        <!-- FEMALE VOICE PERSONA SELECTOR -->
+        <div>
+          <div class="metric-row"><span>FEMALE VOICE PERSONA</span></div>
+          <select id="femaleVoiceSelect" class="hud-select">
+            <option value="jarvis">VOICE: AI ASSISTANT (CLEAR)</option>
+            <option value="anime">VOICE: ANIME / HIGH PITCH</option>
+            <option value="smooth">VOICE: SMOOTH & CALM</option>
+            <option value="cyber">VOICE: CYBER VALKYRIE</option>
+          </select>
         </div>
       </div>
 
@@ -409,16 +442,28 @@
     const userText = document.getElementById("userText");
     const aiResponse = document.getElementById("aiResponse");
 
-    // Locked Groq API Credentials
-    const GROQ_API_KEY = "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";
+    // Integrated Groq API Credentials
+    const GROQ_API_KEY = "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";
     const GROQ_MODEL = "llama-3.3-70b-versatile";
     const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
     let systemState = "idle"; // "idle", "listening", "thinking"
     let cameraStream = null;
     let audioCtx, analyser, dataArray;
+    let availableVoices = [];
 
-    // --- Dynamic 3D Perspective Tilt ---
+    // Initialize System Speech Voices
+    function loadVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = window.speechSynthesis.getVoices();
+      }
+    }
+    loadVoices();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // Dynamic 3D Perspective Tilt
     window.addEventListener("mousemove", (e) => {
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
@@ -509,12 +554,12 @@
 
       // Color and Reactive Scale Shifts
       if (systemState === "listening") {
-        orbMat.color.setHex(0xffbe0b); // Gold when voice active
+        orbMat.color.setHex(0xffbe0b);
         torusMat.color.setHex(0xffbe0b);
         const scale = 1 + volume;
         innerOrb.scale.set(scale, scale, scale);
       } else if (systemState === "thinking") {
-        orbMat.color.setHex(0x00f3ff); // Cyan processing
+        orbMat.color.setHex(0x00f3ff);
         torusMat.color.setHex(0xff0055);
       } else {
         orbMat.color.setHex(0x00f3ff);
@@ -527,7 +572,7 @@
     animate3D();
 
     // ==========================================
-    // SYSTEM SETUP & GROQ LOGIC
+    // SYSTEM SETUP & GROQ SPEECH LOGIC
     // ==========================================
     window.onload = () => {
       setInterval(() => {
@@ -618,7 +663,7 @@
 
       systemState = "idle";
       aiResponse.innerText = `>> SHRUTI: ${reply}`;
-      speakHindi(reply);
+      speakFemaleVoice(reply);
     }
 
     async function fetchGroqAI(prompt) {
@@ -645,14 +690,42 @@
       }
     }
 
-    function speakHindi(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const ut = new SpeechSynthesisUtterance(text);
-        ut.lang = 'hi-IN';
-        ut.pitch = 1.1;
-        window.speechSynthesis.speak(ut);
+    // ==========================================
+    // ADVANCED FEMALE SPEECH SYNTHESIS ENGINE
+    // ==========================================
+    function speakFemaleVoice(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      window.speechSynthesis.cancel();
+      const ut = new SpeechSynthesisUtterance(text);
+      const mode = document.getElementById("femaleVoiceSelect").value;
+
+      // Filter available browser voices for female/Hindi compatible voices
+      const femaleVoices = availableVoices.filter(v => 
+        v.lang.includes("hi") || v.lang.includes("IN") || v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("google")
+      );
+
+      if (femaleVoices.length > 0) {
+        ut.voice = femaleVoices[0];
       }
+
+      // Voice Persona Configurations
+      if (mode === "jarvis") {
+        ut.pitch = 1.25;
+        ut.rate = 1.05;
+      } else if (mode === "anime") {
+        ut.pitch = 1.6;
+        ut.rate = 1.15;
+      } else if (mode === "smooth") {
+        ut.pitch = 1.0;
+        ut.rate = 0.95;
+      } else if (mode === "cyber") {
+        ut.pitch = 1.4;
+        ut.rate = 1.2;
+      }
+
+      ut.lang = 'hi-IN';
+      window.speechSynthesis.speak(ut);
     }
   </script>
 </body>
