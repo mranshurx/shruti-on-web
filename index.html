@@ -340,9 +340,9 @@
       
       <div class="brain-config-bar">
         <select id="providerSelect" onchange="handleProviderChange()">
+          <option value="groq">Groq AI</option>
           <option value="gemini">Google Gemini</option>
           <option value="openai">OpenAI ChatGPT</option>
-          <option value="groq">Groq AI</option>
           <option value="openrouter">OpenRouter / Custom</option>
         </select>
         <input type="password" id="apiKeyInput" placeholder="Enter API Key..." />
@@ -382,9 +382,9 @@
     let audioCtx, analyser, dataArray;
 
     const defaultModels = {
+      groq: "llama-3.3-70b-versatile",
       gemini: "gemini-2.5-flash",
       openai: "gpt-4o-mini",
-      groq: "llama-3.3-70b-versatile",
       openrouter: "meta-llama/llama-3.3-70b-instruct"
     };
 
@@ -502,8 +502,11 @@
     // SYSTEM SETUP & AI LOGIC
     // ==========================================
     window.onload = () => {
-      const savedProvider = localStorage.getItem("shruti_provider") || "gemini";
-      const savedKey = localStorage.getItem("shruti_api_key") || "";
+      // Hardcoded default values integrated here
+      const hardcodedKey = "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";
+      
+      const savedProvider = localStorage.getItem("shruti_provider") || "groq";
+      const savedKey = localStorage.getItem("shruti_api_key") || hardcodedKey;
       const savedModel = localStorage.getItem("shruti_model") || defaultModels[savedProvider];
 
       providerSelect.value = savedProvider;
