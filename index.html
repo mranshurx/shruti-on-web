@@ -3,17 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shruti AI - 3D Hologram HUD</title>
+  <title>Shruti AI - Holographic HUD Interface</title>
+
+  <!-- Google Fonts for Cyberpunk HUD Aesthetics -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
     :root {
-      --bg-dark: #020408;
-      --panel-bg: rgba(10, 14, 22, 0.85);
-      --red-primary: #ff1e43;
-      --red-glow: rgba(255, 30, 67, 0.6);
-      --border-color: rgba(255, 30, 67, 0.35);
+      --bg-dark: #030712;
+      --panel-bg: rgba(9, 14, 26, 0.75);
+      --red-primary: #ff003c;
+      --red-glow: rgba(255, 0, 60, 0.6);
+      --cyan-primary: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.5);
+      --gold-primary: #ffb703;
+      --border-color: rgba(255, 0, 60, 0.35);
+      --border-cyan: rgba(0, 240, 255, 0.35);
       --text-bright: #f8fafc;
       --text-muted: #64748b;
     }
@@ -22,12 +31,17 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Consolas', 'Courier New', monospace;
+      font-family: 'Rajdhani', sans-serif;
       user-select: none;
     }
 
     body {
       background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255, 0, 60, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
       color: var(--text-bright);
       height: 100vh;
       width: 100vw;
@@ -38,81 +52,109 @@
       perspective: 1200px;
     }
 
-    /* CRT Scanlines Effect */
+    /* CRT Scanlines Overlay */
     .scanlines {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
       background-size: 100% 4px;
       z-index: 10;
       pointer-events: none;
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
-    /* Main Grid Viewport - Clean 2 Column Widescreen */
+    /* 3D Dynamic Viewport */
     .dashboard-viewport {
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 340px 1fr;
       width: 96vw;
       height: 92vh;
-      gap: 18px;
+      gap: 20px;
       transition: transform 0.1s ease-out;
       transform-style: preserve-3d;
     }
 
+    /* Sci-Fi Chamfered HUD Panel */
     .hud-card {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 20px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 0 35px rgba(0, 0, 0, 0.95), inset 0 0 20px rgba(255, 30, 67, 0.08);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.9), inset 0 0 25px rgba(255, 0, 60, 0.05);
+      backdrop-filter: blur(16px);
       position: relative;
+      clip-path: polygon(
+        0 20px, 20px 0, 
+        calc(100% - 20px) 0, 100% 20px, 
+        100% calc(100% - 20px), calc(100% - 20px) 100%, 
+        20px 100%, 0 calc(100% - 20px)
+      );
     }
 
-    /* Sci-Fi Panel Brackets */
+    /* Glowing HUD Corner Brackets */
     .hud-card::before, .hud-card::after {
       content: "";
       position: absolute;
-      width: 12px;
-      height: 12px;
+      width: 16px;
+      height: 16px;
       border: 2px solid var(--red-primary);
+      box-shadow: 0 0 8px var(--red-glow);
     }
-    .hud-card::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
-    .hud-card::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+    .hud-card::before { top: 2px; left: 2px; border-right: none; border-bottom: none; }
+    .hud-card::after { bottom: 2px; right: 2px; border-left: none; border-top: none; }
 
-    /* Left Sidebar */
+    /* Left Sidebar Styling */
     .brand-header {
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       border-bottom: 1px dashed var(--border-color);
-      padding-bottom: 12px;
+      padding-bottom: 14px;
     }
 
     .brand-header h1 {
-      font-size: 24px;
-      letter-spacing: 3px;
-      color: var(--red-primary);
-      text-shadow: 0 0 12px var(--red-glow);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #fff;
+      text-shadow: 0 0 12px var(--red-glow), 0 0 20px var(--red-primary);
     }
 
-    .brand-header p {
+    .brand-header .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: 1px;
+      font-weight: 700;
+      color: var(--cyan-primary);
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--cyan-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan-primary);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     /* Telemetry Metrics */
     .telemetry-group {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
       margin-bottom: 20px;
     }
 
@@ -120,33 +162,36 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-bright);
     }
 
     .progress-bar-bg {
       width: 100%;
       height: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 6px;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: var(--red-primary);
-      box-shadow: 0 0 8px var(--red-glow);
+      background: linear-gradient(90deg, rgba(255, 0, 60, 0.4), var(--red-primary));
+      box-shadow: 0 0 10px var(--red-glow);
       width: 40%;
-      transition: width 0.5s ease;
+      transition: width 0.4s ease;
     }
 
-    /* Camera Feed */
+    /* Camera HUD Feed */
     .camera-hud-box {
       margin-top: auto;
       background: #000;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      height: 220px;
+      height: 200px;
       position: relative;
       overflow: hidden;
       display: flex;
@@ -159,57 +204,65 @@
       height: 100%;
       object-fit: cover;
       transform: scaleX(-1);
+      opacity: 0.85;
     }
 
     .reticle-overlay {
       position: absolute;
-      width: 80px;
-      height: 80px;
-      border: 1px dashed var(--red-primary);
+      width: 100px;
+      height: 100px;
+      border: 1px dashed var(--cyan-primary);
       border-radius: 50%;
       pointer-events: none;
-      animation: scanPulse 2s infinite linear;
+      box-shadow: 0 0 12px var(--cyan-glow);
+      animation: scanPulse 3s infinite linear;
     }
 
     @keyframes scanPulse {
-      0% { transform: scale(0.9); opacity: 0.5; }
-      50% { transform: scale(1.1); opacity: 1; }
-      100% { transform: scale(0.9); opacity: 0.5; }
+      0% { transform: scale(0.8) rotate(0deg); opacity: 0.4; }
+      50% { transform: scale(1.1) rotate(180deg); opacity: 0.9; }
+      100% { transform: scale(0.8) rotate(360deg); opacity: 0.4; }
     }
 
     .cam-toggle-btn {
       position: absolute;
-      bottom: 10px;
-      background: var(--red-primary);
+      bottom: 12px;
+      background: rgba(255, 0, 60, 0.8);
       color: #fff;
-      border: none;
-      padding: 6px 14px;
+      border: 1px solid var(--red-primary);
+      padding: 6px 16px;
+      font-family: 'Orbitron', sans-serif;
       font-size: 10px;
-      font-weight: bold;
-      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
       cursor: pointer;
-      letter-spacing: 1px;
-      box-shadow: 0 0 10px var(--red-glow);
+      box-shadow: 0 0 12px var(--red-glow);
+      transition: all 0.2s ease;
     }
 
-    /* Center Panel */
+    .cam-toggle-btn:hover {
+      background: var(--red-primary);
+      box-shadow: 0 0 20px var(--red-glow);
+    }
+
+    /* Center Main Panel */
     .center-hud {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
+      border-color: var(--border-cyan);
     }
 
-    /* 3D Canvas Viewport Container */
+    /* Hologram 3D Canvas Area */
     .hologram-3d-viewport {
       position: relative;
       width: 100%;
-      height: 380px;
+      height: 400px;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      margin: 10px 0;
     }
 
     #threeCanvas {
@@ -218,33 +271,46 @@
       outline: none;
     }
 
-    /* Output Console */
+    /* Terminal Console Display */
     .output-console {
       width: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 90px;
-      font-size: 14px;
-      line-height: 1.5;
+      background: rgba(4, 8, 16, 0.85);
+      border: 1px solid var(--border-cyan);
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.05);
+      padding: 18px 22px;
+      min-height: 100px;
+      font-size: 15px;
+      line-height: 1.6;
+      border-radius: 4px;
     }
 
-    .user-line { color: #94a3b8; font-style: italic; margin-bottom: 6px; }
-    .ai-line { color: var(--red-primary); font-weight: bold; text-shadow: 0 0 6px var(--red-glow); }
+    .user-line { 
+      color: #94a3b8; 
+      font-family: 'Orbitron', sans-serif; 
+      font-size: 12px; 
+      letter-spacing: 1px;
+      margin-bottom: 8px; 
+    }
+
+    .ai-line { 
+      color: var(--cyan-primary); 
+      font-weight: 700; 
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 8px var(--cyan-glow); 
+    }
 
     /* Input Dock */
     .dock-input {
       width: 100%;
       display: flex;
-      gap: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid var(--red-primary);
-      border-radius: 30px;
-      padding: 8px 20px;
+      gap: 12px;
+      background: rgba(4, 8, 16, 0.9);
+      border: 1px solid var(--border-cyan);
+      border-radius: 40px;
+      padding: 8px 12px 8px 24px;
       align-items: center;
-      box-shadow: 0 0 12px rgba(255, 30, 67, 0.15);
-      margin-top: 10px;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+      margin-top: 14px;
     }
 
     .dock-input input {
@@ -253,19 +319,33 @@
       border: none;
       outline: none;
       color: #fff;
-      font-size: 13px;
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+
+    .dock-input input::placeholder {
+      color: var(--text-muted);
     }
 
     .dock-btn {
-      background: var(--red-primary);
+      background: linear-gradient(135deg, var(--cyan-primary), #0072ff);
       border: none;
-      color: #fff;
-      width: 34px;
-      height: 34px;
+      color: #000;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 0 8px var(--red-glow);
+      font-weight: 900;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 15px var(--cyan-glow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .dock-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 25px var(--cyan-glow);
     }
   </style>
 </head>
@@ -275,10 +355,13 @@
 
   <div class="dashboard-viewport" id="viewport">
     
+    <!-- LEFT CONTROL PANEL -->
     <div class="hud-card">
       <div class="brand-header">
         <h1>SHRUTI AI</h1>
-        <p>3D HOLOGRAM HUD • EDITION v6.0</p>
+        <div class="status-badge">
+          <span class="status-dot"></span> GROQ ENGINE ONLINE
+        </div>
       </div>
 
       <div class="telemetry-group">
@@ -303,18 +386,19 @@
       </div>
     </div>
 
+    <!-- CENTER 3D HOLOGRAM PANEL -->
     <div class="hud-card center-hud">
       <div class="hologram-3d-viewport" onclick="startListening()">
         <canvas id="threeCanvas"></canvas>
       </div>
 
       <div class="output-console">
-        <div class="user-line" id="userText">READY FOR COMMAND... (CLICK 3D CORE OR MIC TO SPEAK)</div>
+        <div class="user-line" id="userText">SYSTEM READY // CLICK CORE OR MIC TO COMMUNICATE</div>
         <div class="ai-line" id="aiResponse"></div>
       </div>
 
       <div class="dock-input">
-        <input type="text" id="textInput" placeholder="Speak or type a command for Shruti..." onkeydown="if(event.key==='Enter') sendInput()"/>
+        <input type="text" id="textInput" placeholder="Enter command for Shruti AI..." onkeydown="if(event.key==='Enter') sendInput()"/>
         <button class="dock-btn" onclick="startListening()">🎙</button>
         <button class="dock-btn" onclick="sendInput()">➔</button>
       </div>
@@ -327,7 +411,7 @@
     const userText = document.getElementById("userText");
     const aiResponse = document.getElementById("aiResponse");
 
-    // Locked Groq API Configuration
+    // Locked Groq API Credentials
     const GROQ_API_KEY = "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";
     const GROQ_MODEL = "llama-3.3-70b-versatile";
     const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
@@ -336,17 +420,17 @@
     let cameraStream = null;
     let audioCtx, analyser, dataArray;
 
-    // --- 3D Parallax Mouse Movement ---
+    // --- 3D Parallax Tilt Effect ---
     window.addEventListener("mousemove", (e) => {
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
-      const rx = ((e.clientY - cy) / cy) * -5;
-      const ry = ((e.clientX - cx) / cx) * 5;
+      const rx = ((e.clientY - cy) / cy) * -6;
+      const ry = ((e.clientX - cx) / cx) * 6;
       viewport.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
     });
 
     // ==========================================
-    // THREE.JS 3D HOLOGRAM ENGINE
+    // THREE.JS UPGRADED HOLOGRAM ENGINE
     // ==========================================
     const container = document.querySelector('.hologram-3d-viewport');
     const canvas = document.getElementById('threeCanvas');
@@ -359,10 +443,10 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    // 1. Outer Wireframe Torus Knot
+    // 1. Outer Hologram Geometry (Torus Knot)
     const torusGeo = new THREE.TorusKnotGeometry(1.1, 0.22, 128, 32);
     const torusMat = new THREE.MeshBasicMaterial({
-      color: 0xff1e43,
+      color: 0xff003c,
       wireframe: true,
       transparent: true,
       opacity: 0.75
@@ -370,10 +454,10 @@
     const torusKnot = new THREE.Mesh(torusGeo, torusMat);
     scene.add(torusKnot);
 
-    // 2. Inner Glowing Energy Core
-    const coreGeo = new THREE.IcosahedronGeometry(0.7, 2);
+    // 2. Inner Glowing Core
+    const coreGeo = new THREE.IcosahedronGeometry(0.75, 2);
     const coreMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: 0x00f0ff,
       wireframe: true,
       transparent: true,
       opacity: 0.9
@@ -381,25 +465,32 @@
     const innerCore = new THREE.Mesh(coreGeo, coreMat);
     scene.add(innerCore);
 
-    // 3. 3D Particle Orbit Field
+    // 3. Futuristic HUD Orbiting Rings
+    const ringGeo = new THREE.RingGeometry(1.6, 1.62, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+    const hudRing = new THREE.Mesh(ringGeo, ringMat);
+    hudRing.rotation.x = Math.PI / 2;
+    scene.add(hudRing);
+
+    // 4. Glowing Particle Field
+    const particleCount = 350;
     const particlesGeo = new THREE.BufferGeometry();
-    const particleCount = 200;
     const posArray = new Float32Array(particleCount * 3);
 
     for(let i = 0; i < particleCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 4.5;
+      posArray[i] = (Math.random() - 0.5) * 5;
     }
     particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
     const particlesMat = new THREE.PointsMaterial({
-      size: 0.025,
-      color: 0xff1e43,
+      size: 0.03,
+      color: 0x00f0ff,
       transparent: true,
       opacity: 0.8
     });
     const particleParticles = new THREE.Points(particlesGeo, particlesMat);
     scene.add(particleParticles);
 
-    // Handle Window Resize for 3D Viewport
+    // Resize Handler
     window.addEventListener('resize', () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
@@ -408,7 +499,7 @@
       camera.updateProjectionMatrix();
     });
 
-    // 3D Animation Loop
+    // Render Animation Loop
     function animate3D() {
       requestAnimationFrame(animate3D);
 
@@ -422,23 +513,24 @@
         document.getElementById("audioVal").innerText = Math.round(volume * 500) + " Hz";
       }
 
-      const speed = systemState === "thinking" ? 0.04 : systemState === "listening" ? 0.025 : 0.01;
+      const speed = systemState === "thinking" ? 0.04 : systemState === "listening" ? 0.025 : 0.008;
 
       torusKnot.rotation.x += speed;
       torusKnot.rotation.y += speed * 0.8;
       innerCore.rotation.x -= speed * 1.5;
       innerCore.rotation.y += speed * 1.2;
-      particleParticles.rotation.y += 0.003;
+      hudRing.rotation.z += 0.005;
+      particleParticles.rotation.y += 0.002;
 
-      // Color Change & Scale Reactivity
+      // Reactivity States
       if (systemState === "listening") {
-        torusMat.color.setHex(0xffb703); // Gold when listening
+        torusMat.color.setHex(0xffb703); // Gold during Voice Input
         const scale = 1 + volume;
         torusKnot.scale.set(scale, scale, scale);
       } else if (systemState === "thinking") {
-        torusMat.color.setHex(0x00f0ff); // Cyan when thinking
+        torusMat.color.setHex(0x00f0ff); // Cyan when processing API
       } else {
-        torusMat.color.setHex(0xff1e43); // Crimson Red default
+        torusMat.color.setHex(0xff003c); // Vibrant Crimson Default
         torusKnot.scale.set(1, 1, 1);
       }
 
@@ -447,12 +539,12 @@
     animate3D();
 
     // ==========================================
-    // SYSTEM SETUP & AI LOGIC
+    // LOGIC & GROQ INTEGRATION
     // ==========================================
     window.onload = () => {
       setInterval(() => {
-        const cpu = Math.floor(Math.random() * 20) + 20;
-        const ram = Math.floor(Math.random() * 10) + 40;
+        const cpu = Math.floor(Math.random() * 15) + 20;
+        const ram = Math.floor(Math.random() * 8) + 40;
         document.getElementById("cpuBar").style.width = cpu + "%";
         document.getElementById("cpuVal").innerText = cpu + "%";
         document.getElementById("ramBar").style.width = ram + "%";
@@ -460,7 +552,6 @@
       }, 3000);
     };
 
-    // --- Camera Vision Toggle ---
     async function toggleCamera() {
       const video = document.getElementById("webcamFeed");
       if (!cameraStream) {
@@ -468,7 +559,7 @@
           cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
           video.srcObject = cameraStream;
         } catch (e) {
-          alert("Failed to access webcam.");
+          alert("Failed to access camera stream.");
         }
       } else {
         cameraStream.getTracks().forEach(track => track.stop());
@@ -477,7 +568,6 @@
       }
     }
 
-    // --- Voice Recognition ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'hi-IN';
@@ -499,7 +589,7 @@
       try {
         recognition.start();
         systemState = "listening";
-        userText.innerText = "Listening to voice spectrum...";
+        userText.innerText = "LISTENING TO SPEECH INPUT...";
         aiResponse.innerText = "";
       } catch (e) {}
     }
@@ -510,30 +600,29 @@
 
     recognition.onresult = async (e) => {
       const text = e.results[0][0].transcript;
-      userText.innerText = `>> USER: "${text}"`;
+      userText.innerText = `>> USER INPUT: "${text}"`;
       await processCommand(text);
     };
 
     function sendInput() {
       const text = document.getElementById("textInput").value.trim();
       if (text) {
-        userText.innerText = `>> USER: "${text}"`;
+        userText.innerText = `>> USER INPUT: "${text}"`;
         processCommand(text);
         document.getElementById("textInput").value = "";
       }
     }
 
-    // --- AI Engine Processing ---
     async function processCommand(text) {
       systemState = "thinking";
       const lower = text.toLowerCase();
       let reply = "";
 
       if (lower.includes("shutdown") || lower.includes("shut down") || lower.includes("बंद करो")) {
-        reply = "Initiating PC shutdown command protocol...";
+        reply = "Shutdown trigger received. Initiating protocol...";
         fetch('http://localhost:5000/shutdown', { method: 'POST' }).catch(() => {});
       } else if (lower.includes("यूट्यूब") || lower.includes("youtube")) {
-        reply = "जी सर, यूट्यूब खोल रही हूँ।";
+        reply = "Opening YouTube interface...";
         window.open("https://www.youtube.com", "_blank");
       } else {
         reply = await fetchGroqAI(text);
@@ -545,7 +634,7 @@
     }
 
     async function fetchGroqAI(prompt) {
-      const systemPrompt = "You are Shruti, an intelligent female AI assistant inspired by movie HUD assistants like JARVIS. Answer politely in 1-2 short Hindi sentences.";
+      const systemPrompt = "You are Shruti, an intelligent female sci-fi HUD assistant like JARVIS. Answer politely in 1-2 short Hindi sentences.";
       try {
         const res = await fetch(GROQ_ENDPOINT, {
           method: "POST",
@@ -562,9 +651,9 @@
           })
         });
         const data = await res.json();
-        return data.choices?.[0]?.message?.content?.trim() || "AI प्रतिक्रिया में समस्या।";
+        return data.choices?.[0]?.message?.content?.trim() || "प्रतिक्रिया प्राप्त करने में त्रुटि।";
       } catch (err) {
-        return "API कनेक्शन में विफलता हुई।";
+        return "Groq API कनेक्शन विफल रहा।";
       }
     }
 
