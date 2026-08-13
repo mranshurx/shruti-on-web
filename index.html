@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shruti AI - 3D Hologram HUD</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #020408;
+      --panel-bg: rgba(10, 14, 22, 0.85);
+      --red-primary: #ff1e43;
+      --red-glow: rgba(255, 30, 67, 0.6);
+      --border-color: rgba(255, 30, 67, 0.35);
+      --text-bright: #f8fafc;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Consolas', 'Courier New', monospace;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-bright);
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      perspective: 1200px;
+    }
+
+    /* CRT Scanlines Effect */
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* Main Grid Viewport - Clean 2 Column Widescreen */
+    .dashboard-viewport {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      width: 96vw;
+      height: 92vh;
+      gap: 18px;
+      transition: transform 0.1s ease-out;
+      transform-style: preserve-3d;
+    }
+
+    .hud-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.95), inset 0 0 20px rgba(255, 30, 67, 0.08);
+      backdrop-filter: blur(12px);
+      position: relative;
+    }
+
+    /* Sci-Fi Panel Brackets */
+    .hud-card::before, .hud-card::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--red-primary);
+    }
+    .hud-card::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+    .hud-card::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+    /* Left Sidebar */
+    .brand-header {
+      margin-bottom: 20px;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .brand-header h1 {
+      font-size: 24px;
+      letter-spacing: 3px;
+      color: var(--red-primary);
+      text-shadow: 0 0 12px var(--red-glow);
+    }
+
+    .brand-header p {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    /* Telemetry Metrics */
+    .telemetry-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--red-primary);
+      box-shadow: 0 0 8px var(--red-glow);
+      width: 40%;
+      transition: width 0.5s ease;
+    }
+
+    /* Camera Feed */
+    .camera-hud-box {
+      margin-top: auto;
+      background: #000;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      height: 220px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #webcamFeed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .reticle-overlay {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border: 1px dashed var(--red-primary);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: scanPulse 2s infinite linear;
+    }
+
+    @keyframes scanPulse {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.5; }
+    }
+
+    .cam-toggle-btn {
+      position: absolute;
+      bottom: 10px;
+      background: var(--red-primary);
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 0 10px var(--red-glow);
+    }
+
+    /* Center Panel */
+    .center-hud {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brain-config-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr auto;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 30, 67, 0.2);
+    }
+
+    .brain-config-bar select,
+    .brain-config-bar input {
+      background: rgba(5, 8, 14, 0.9);
+      border: 1px solid var(--border-color);
+      color: var(--red-primary);
+      padding: 8px 10px;
+      border-radius: 4px;
+      outline: none;
+      font-size: 11px;
+    }
+
+    .brain-config-bar button {
+      background: var(--red-primary);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* 3D Canvas Viewport Container */
+    .hologram-3d-viewport {
+      position: relative;
+      width: 100%;
+      height: 320px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    #threeCanvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    /* Output Console */
+    .output-console {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 90px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .user-line { color: #94a3b8; font-style: italic; margin-bottom: 6px; }
+    .ai-line { color: var(--red-primary); font-weight: bold; text-shadow: 0 0 6px var(--red-glow); }
+
+    /* Input Dock */
+    .dock-input {
+      width: 100%;
+      display: flex;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid var(--red-primary);
+      border-radius: 30px;
+      padding: 8px 20px;
+      align-items: center;
+      box-shadow: 0 0 12px rgba(255, 30, 67, 0.15);
+      margin-top: 10px;
+    }
+
+    .dock-input input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .dock-btn {
+      background: var(--red-primary);
+      border: none;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 8px var(--red-glow);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scanlines"></div>
+
+  <div class="dashboard-viewport" id="viewport">
+    
+    <div class="hud-card">
+      <div class="brand-header">
+        <h1>SHRUTI AI</h1>
+        <p>3D HOLOGRAM HUD • EDITION v6.0</p>
+      </div>
+
+      <div class="telemetry-group">
+        <div>
+          <div class="metric-row"><span>NEURAL CORE LOAD</span><span id="cpuVal">28%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpuBar" style="width: 28%;"></div></div>
+        </div>
+        <div>
+          <div class="metric-row"><span>MEMORY ALLOCATION</span><span id="ramVal">42%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="ramBar" style="width: 42%;"></div></div>
+        </div>
+        <div>
+          <div class="metric-row"><span>AUDIO FREQUENCY</span><span id="audioVal">0 Hz</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="audioBar" style="width: 10%;"></div></div>
+        </div>
+      </div>
+
+      <div class="camera-hud-box">
+        <video id="webcamFeed" autoplay playsinline muted></video>
+        <div class="reticle-overlay"></div>
+        <button class="cam-toggle-btn" onclick="toggleCamera()">INITIALIZE VISION</button>
+      </div>
+    </div>
+
+    <div class="hud-card center-hud">
+      
+      <div class="brain-config-bar">
+        <select id="providerSelect" onchange="handleProviderChange()">
+          <option value="gemini">Google Gemini</option>
+          <option value="openai">OpenAI ChatGPT</option>
+          <option value="groq">Groq AI</option>
+          <option value="openrouter">OpenRouter / Custom</option>
+        </select>
+        <input type="password" id="apiKeyInput" placeholder="Enter API Key..." />
+        <input type="text" id="modelInput" placeholder="Model Name" />
+        <button onclick="saveApiConfig()">SAVE</button>
+      </div>
+
+      <div class="hologram-3d-viewport" onclick="startListening()">
+        <canvas id="threeCanvas"></canvas>
+      </div>
+
+      <div class="output-console">
+        <div class="user-line" id="userText">READY FOR COMMAND... (CLICK 3D CORE OR MIC TO SPEAK)</div>
+        <div class="ai-line" id="aiResponse"></div>
+      </div>
+
+      <div class="dock-input">
+        <input type="text" id="textInput" placeholder="Speak or type a command for Shruti..." onkeydown="if(event.key==='Enter') sendInput()"/>
+        <button class="dock-btn" onclick="startListening()">🎙</button>
+        <button class="dock-btn" onclick="sendInput()">➔</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const viewport = document.getElementById("viewport");
+    const userText = document.getElementById("userText");
+    const aiResponse = document.getElementById("aiResponse");
+
+    const providerSelect = document.getElementById("providerSelect");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const modelInput = document.getElementById("modelInput");
+
+    let systemState = "idle"; // "idle", "listening", "thinking"
+    let cameraStream = null;
+    let audioCtx, analyser, dataArray;
+
+    const defaultModels = {
+      gemini: "gemini-2.5-flash",
+      openai: "gpt-4o-mini",
+      groq: "llama-3.3-70b-versatile",
+      openrouter: "meta-llama/llama-3.3-70b-instruct"
+    };
+
+    // --- 3D Parallax Mouse Movement ---
+    window.addEventListener("mousemove", (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const rx = ((e.clientY - cy) / cy) * -5;
+      const ry = ((e.clientX - cx) / cx) * 5;
+      viewport.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    });
+
+    // ==========================================
+    // THREE.JS 3D HOLOGRAM ENGINE
+    // ==========================================
+    const container = document.querySelector('.hologram-3d-viewport');
+    const canvas = document.getElementById('threeCanvas');
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.z = 6;
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    // 1. Outer Wireframe Torus Knot
+    const torusGeo = new THREE.TorusKnotGeometry(1.1, 0.22, 128, 32);
+    const torusMat = new THREE.MeshBasicMaterial({
+      color: 0xff1e43,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.75
+    });
+    const torusKnot = new THREE.Mesh(torusGeo, torusMat);
+    scene.add(torusKnot);
+
+    // 2. Inner Glowing Energy Core
+    const coreGeo = new THREE.IcosahedronGeometry(0.7, 2);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.9
+    });
+    const innerCore = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(innerCore);
+
+    // 3. 3D Particle Orbit Field
+    const particlesGeo = new THREE.BufferGeometry();
+    const particleCount = 200;
+    const posArray = new Float32Array(particleCount * 3);
+
+    for(let i = 0; i < particleCount * 3; i++) {
+      posArray[i] = (Math.random() - 0.5) * 4.5;
+    }
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particlesMat = new THREE.PointsMaterial({
+      size: 0.025,
+      color: 0xff1e43,
+      transparent: true,
+      opacity: 0.8
+    });
+    const particleParticles = new THREE.Points(particlesGeo, particlesMat);
+    scene.add(particleParticles);
+
+    // Handle Window Resize for 3D Viewport
+    window.addEventListener('resize', () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    });
+
+    // 3D Animation Loop
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+
+      let volume = 0;
+      if (analyser && systemState === "listening") {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        volume = (sum / dataArray.length) * 0.02;
+        document.getElementById("audioBar").style.width = Math.min(100, volume * 150) + "%";
+        document.getElementById("audioVal").innerText = Math.round(volume * 500) + " Hz";
+      }
+
+      const speed = systemState === "thinking" ? 0.04 : systemState === "listening" ? 0.025 : 0.01;
+
+      torusKnot.rotation.x += speed;
+      torusKnot.rotation.y += speed * 0.8;
+      innerCore.rotation.x -= speed * 1.5;
+      innerCore.rotation.y += speed * 1.2;
+      particleParticles.rotation.y += 0.003;
+
+      // Color Change & Scale Reactivity
+      if (systemState === "listening") {
+        torusMat.color.setHex(0xffb703); // Gold when listening
+        const scale = 1 + volume;
+        torusKnot.scale.set(scale, scale, scale);
+      } else if (systemState === "thinking") {
+        torusMat.color.setHex(0x00f0ff); // Cyan when thinking
+      } else {
+        torusMat.color.setHex(0xff1e43); // Crimson Red default
+        torusKnot.scale.set(1, 1, 1);
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate3D();
+
+    // ==========================================
+    // SYSTEM SETUP & AI LOGIC
+    // ==========================================
+    window.onload = () => {
+      const savedProvider = localStorage.getItem("shruti_provider") || "gemini";
+      const savedKey = localStorage.getItem("shruti_api_key") || "";
+      const savedModel = localStorage.getItem("shruti_model") || defaultModels[savedProvider];
+
+      providerSelect.value = savedProvider;
+      apiKeyInput.value = savedKey;
+      modelInput.value = savedModel;
+
+      setInterval(() => {
+        const cpu = Math.floor(Math.random() * 20) + 20;
+        const ram = Math.floor(Math.random() * 10) + 40;
+        document.getElementById("cpuBar").style.width = cpu + "%";
+        document.getElementById("cpuVal").innerText = cpu + "%";
+        document.getElementById("ramBar").style.width = ram + "%";
+        document.getElementById("ramVal").innerText = ram + "%";
+      }, 3000);
+    };
+
+    function handleProviderChange() {
+      const provider = providerSelect.value;
+      modelInput.value = defaultModels[provider] || "";
+    }
+
+    function saveApiConfig() {
+      const provider = providerSelect.value;
+      const key = apiKeyInput.value.trim();
+      const model = modelInput.value.trim() || defaultModels[provider];
+
+      localStorage.setItem("shruti_provider", provider);
+      localStorage.setItem("shruti_api_key", key);
+      localStorage.setItem("shruti_model", model);
+
+      if (key) alert("Configuration Saved!");
+    }
+
+    // --- Camera Vision Toggle ---
+    async function toggleCamera() {
+      const video = document.getElementById("webcamFeed");
+      if (!cameraStream) {
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = cameraStream;
+        } catch (e) {
+          alert("Failed to access webcam.");
+        }
+      } else {
+        cameraStream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        cameraStream = null;
+      }
+    }
+
+    // --- Voice Recognition ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN';
+
+    async function startListening() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        try {
+          const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const src = audioCtx.createMediaStreamSource(mic);
+          src.connect(analyser);
+        } catch(e) {}
+      }
+
+      try {
+        recognition.start();
+        systemState = "listening";
+        userText.innerText = "Listening to voice spectrum...";
+        aiResponse.innerText = "";
+      } catch (e) {}
+    }
+
+    recognition.onend = () => {
+      if (systemState !== "thinking") systemState = "idle";
+    };
+
+    recognition.onresult = async (e) => {
+      const text = e.results[0][0].transcript;
+      userText.innerText = `>> USER: "${text}"`;
+      await processCommand(text);
+    };
+
+    function sendInput() {
+      const text = document.getElementById("textInput").value.trim();
+      if (text) {
+        userText.innerText = `>> USER: "${text}"`;
+        processCommand(text);
+        document.getElementById("textInput").value = "";
+      }
+    }
+
+    // --- AI Engine Processing ---
+    async function processCommand(text) {
+      systemState = "thinking";
+      const lower = text.toLowerCase();
+      let reply = "";
+
+      if (lower.includes("shutdown") || lower.includes("shut down") || lower.includes("बंद करो")) {
+        reply = "Initiating PC shutdown command protocol...";
+        fetch('http://localhost:5000/shutdown', { method: 'POST' }).catch(() => {});
+      } else if (lower.includes("यूट्यूब") || lower.includes("youtube")) {
+        reply = "जी सर, यूट्यूब खोल रही हूँ।";
+        window.open("https://www.youtube.com", "_blank");
+      } else {
+        const provider = providerSelect.value;
+        const apiKey = apiKeyInput.value.trim();
+        const model = modelInput.value.trim() || defaultModels[provider];
+
+        if (apiKey) {
+          reply = await fetchAI(text, provider, apiKey, model);
+        } else {
+          reply = "जवाब देने के लिए कृपया ऊपर API Key दर्ज करें।";
+        }
+      }
+
+      systemState = "idle";
+      aiResponse.innerText = `>> SHRUTI: ${reply}`;
+      speakHindi(reply);
+    }
+
+    async function fetchAI(prompt, provider, apiKey, model) {
+      const systemPrompt = "You are Shruti, an intelligent female AI assistant inspired by movie HUD assistants like JARVIS. Answer politely in 1-2 short Hindi sentences.";
+      try {
+        if (provider === "gemini") {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nUser: ${prompt}` }] }] })
+          });
+          const data = await res.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "प्रतिक्रिया प्राप्त नहीं हो सकी।";
+        } else {
+          let endpoint = "https://api.openai.com/v1/chat/completions";
+          if (provider === "groq") endpoint = "https://api.groq.com/openai/v1/chat/completions";
+          else if (provider === "openrouter") endpoint = "https://openrouter.ai/api/v1/chat/completions";
+
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }] })
+          });
+          const data = await res.json();
+          return data.choices?.[0]?.message?.content?.trim() || "AI प्रतिक्रिया में समस्या।";
+        }
+      } catch (err) {
+        return "API कनेक्शन में विफलता हुई।";
+      }
+    }
+
+    function speakHindi(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.lang = 'hi-IN';
+        ut.pitch = 1.1;
+        window.speechSynthesis.speak(ut);
+      }
+    }
+  </script>
+</body>
+</html>
